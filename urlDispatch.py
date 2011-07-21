@@ -85,16 +85,16 @@ class UrlDispatch(object):
 
     def wsgi(self, environ, start_response, *args, **kw):
         request = Request(environ)
-        try: res = self.dispatch(request, *args, **kw)
+        try: 
+            res = self.dispatch(request, *args, **kw)
+            if not callable(res):
+                res = self.adaptToResponse(request, res)
         except HTTPException as err:
             res = err
-
-        if not callable(res):
-            res = self.adaptToResponse(res)
         return res(environ, start_response)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    def adaptToResponse(self, res):
+    def adaptToResponse(self, request, res):
         return Response(res)
 
