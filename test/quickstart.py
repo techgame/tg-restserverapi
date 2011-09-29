@@ -34,9 +34,8 @@ class UrlDispatchQuickstart(object):
 
     @api.route('/feeds/')
     @api.route('/feeds/<feed_name>.rss')
-    def feeds(self, request, feed_name):
+    def feeds(self, request, feed_name=None):
         return 'feeds %r' % (feed_name,)
-
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Main 

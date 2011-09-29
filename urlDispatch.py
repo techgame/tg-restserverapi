@@ -73,13 +73,14 @@ class UrlDispatch(object):
         return ep, kwArgs
 
     partial = staticmethod(functools.partial)
-    def bindDispatch(self, environ):
-        (rule, func), kwArgs = self.findDispatch(environ)
-        return self.partial(func, **kwArgs)
+    def bindDispatchEx(self, request, args, kw):
+        (rule, func), kwDisp = self.findDispatch(request.environ)
+        if kw: kwDisp.update(kw)
+        return self.partial(func, *args, **kwDisp)
 
     def dispatch(self, request, *args, **kw):
-        fnEndpoint = self.bindDispatch(request)
-        return fnEndpoint(request, *args, **kw)
+        fnEndpoint = self.bindDispatchEx(request, args, kw)
+        return fnEndpoint(request)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
