@@ -84,8 +84,10 @@ class UrlDispatch(object):
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    Request = Request
+    Request.Response = Response
     def wsgi(self, environ, start_response, *args, **kw):
-        request = Request(environ)
+        request = self.Request(environ, start_response)
         try: 
             res = self.dispatch(request, *args, **kw)
             if not callable(res):

@@ -33,5 +33,9 @@ class JsonUrlDispatch(UrlDispatch):
     def adaptToResponse(self, request, res):
         if isinstance(res, list):
             res = {'items':res}
+        elif not isinstance(res, dict):
+            ResponseClass = getattr(request, 'Response', Response)
+            return ResponseClass(res)
+
         return self.jsonify(request, res)
 
