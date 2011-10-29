@@ -29,13 +29,28 @@ def jsonify(request, *args, **kw):
 
 class JsonUrlDispatch(UrlDispatch):
     jsonify = staticmethod(jsonify)
+    json_headers = {}
 
     def adaptToResponse(self, request, res):
         if isinstance(res, list):
             res = {'items':res}
         elif not isinstance(res, dict):
-            ResponseClass = getattr(request, 'Response', Response)
-            return ResponseClass(res)
+            return self.asResponse_fallback(request, res)
 
-        return self.jsonify(request, res)
+        return self.asResponse_json(request, res)
+
+    def asResponse_fallback(self):
+        ResponseClass = getattr(request, 'Response', Response)
+        return ResponseClass(res)
+
+    def asResponse_json(self, request, res):
+        res = self.jsonify(request, res)
+        return self.setHeaderDefaults(res, self.json_headers)
+
+    def setHeaderDefaults(self, response, headers):
+        setkv = response.headers.setdefault
+        for k,v in headers.iteritems():
+            setkv(k, v)
+        return response
+
 
