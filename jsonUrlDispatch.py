@@ -45,12 +45,8 @@ class JsonUrlDispatch(UrlDispatch):
 
     def asResponse_json(self, request, res):
         res = self.jsonify(request, res)
-        return self.setHeaderDefaults(res, self.json_headers)
+        return self.applyHeaders(request, res, self.json_headers)
 
-    def setHeaderDefaults(self, response, headers):
-        setkv = response.headers.setdefault
-        for k,v in headers.iteritems():
-            setkv(k, v)
-        return response
-
+    def findStdHeaders(self, request, response):
+        return self.json_headers
 

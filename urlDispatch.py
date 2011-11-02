@@ -12,7 +12,7 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 import functools
-from werkzeug.exceptions import HTTPException, NotFound
+from werkzeug.exceptions import MethodNotAllowed, HTTPException, NotFound
 from werkzeug.wrappers import Request, Response
 from werkzeug.routing import Map, Rule
 
@@ -32,6 +32,9 @@ class UrlDispatch(object):
     def branch(self): return self.new(self.db, self.rules)
     def route(self, *args, **kw):
         RuleClass = kw.get('RuleClass', self.RuleClass)
+        methods = kw.get('methods')
+        if isinstance(methods, basestring):
+            kw['methods'] = [m.upper() for m in methods.split()]
         def deco_route(func):
             endpoint = kw.get('endpoint')
             if endpoint is None:
@@ -61,26 +64,61 @@ class UrlDispatch(object):
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    def findDispatch(self, environ, NotFoundException=NotFound):
-        urls = self.url_map.bind_to_environ(environ)
-        endpoint, kwArgs = urls.match()
+    def findEndpointDispatch(self, endpoint, NotFoundException=NotFound):
         try: ep = self.db[endpoint]
         except LookupError:
-            if NotFoundException is None: raise
+            if NotFoundException is False:
+                return None
             elif NotFoundException:
                 raise NotFoundException(endpoint)
-            else: ep = None
-        return ep, kwArgs
+            else: raise
+        return ep
 
     partial = staticmethod(functools.partial)
-    def bindDispatchEx(self, request, args, kw):
-        (rule, func), kwDisp = self.findDispatch(request.environ)
-        if kw: kwDisp.update(kw)
-        return self.partial(func, *args, **kwDisp)
+    def bindEndpoint(self, endpoint, epArgs, *args, **kw):
+        rule, func = self.findEndpointDispatch(endpoint)
+        if kw: epArgs.update(kw)
+        return self.partial(func, *args, **epArgs)
 
     def dispatch(self, request, *args, **kw):
-        fnEndpoint = self.bindDispatchEx(request, args, kw)
-        return fnEndpoint(request)
+        res = None
+        urls = self.url_map.bind_to_environ(request.environ)
+        responder = self.firstResponders.get(request.method)
+        try:
+            if responder is not None:
+                res = responder(self, urls, request)
+
+            if res is None:
+                endpoint, epArgs = urls.match()
+                fnEndpoint = self.bindEndpoint(endpoint, epArgs, *args, **kw)
+                res = fnEndpoint(request)
+
+            if not callable(res):
+                res = self.adaptToResponse(request, res)
+
+            self.applyHeaders(request, res)
+        except HTTPException as err:
+            res = err
+        return res
+
+    firstResponders = {}
+
+    def _firstResponder_options(self, urls, request):
+        methods = urls.allowed_methods()
+        if "OPTIONS" in methods: 
+            return None # defer to explicit response from user
+        if methods:
+            methods = list(methods)
+            if 'GET' in methods and 'HEAD' not in methods:
+                methods.append('HEAD')
+            if 'OPTIONS' not in methods:
+                methods.append('OPTIONS')
+        else: methods = ['GET', 'HEAD', 'OPTIONS']
+
+        res = request.Response()
+        res.allow.update(methods)
+        return res
+    firstResponders['OPTIONS'] = _firstResponder_options
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -88,16 +126,27 @@ class UrlDispatch(object):
     Request.Response = Response
     def wsgi(self, environ, start_response, *args, **kw):
         request = self.Request(environ, start_response)
-        try: 
-            res = self.dispatch(request, *args, **kw)
-            if not callable(res):
-                res = self.adaptToResponse(request, res)
-        except HTTPException as err:
-            res = err
+        res = self.dispatch(request, *args, **kw)
         return res(environ, start_response)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def adaptToResponse(self, request, res):
         return Response(res)
+
+    def applyHeaders(self, request, response, headers=None):
+        if headers is None:
+            headers = self.findStdHeaders(request, response)
+        return self.applyResponseHeaders(response, headers)
+
+    def findStdHeaders(self, request, response):
+        return {}
+
+    def applyResponseHeaders(self, response, headers):
+        try: setkv = response.headers.setdefault
+        except AttributeError: pass
+        else:
+            for k,v in headers.iteritems():
+                setkv(k, v)
+        return response
 
