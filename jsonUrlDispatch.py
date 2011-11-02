@@ -39,7 +39,7 @@ class JsonUrlDispatch(UrlDispatch):
 
         return self.asResponse_json(request, res)
 
-    def asResponse_fallback(self):
+    def asResponse_fallback(self, request, res):
         ResponseClass = getattr(request, 'Response', Response)
         return ResponseClass(res)
 
