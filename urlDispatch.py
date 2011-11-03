@@ -46,6 +46,19 @@ class UrlDispatch(object):
         return deco_route
     def endpointForFunc(self, func): return func.__name__
 
+    def GET(self, *args, **kw):
+        kw['methods'] = ['GET', 'HEAD']
+        return self.route(*args, **kw)
+    def PUT(self, *args, **kw):
+        kw['methods'] = ['PUT']
+        return self.route(*args, **kw)
+    def POST(self, *args, **kw):
+        kw['methods'] = ['POST']
+        return self.route(*args, **kw)
+    def DELETE(self, *args, **kw):
+        kw['methods'] = ['DELETE']
+        return self.route(*args, **kw)
+
     def addRoute(self, endpoint, rule, func):
         self._url_map = None
         self.rules.append(rule)
