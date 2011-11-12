@@ -12,7 +12,7 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 import json
-from .urlDispatch import UrlDispatch, Response
+from .urlDispatch import UrlDispatch, BasicApiRoot, Response
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
@@ -30,6 +30,11 @@ def jsonify(request, *args, **kw):
 class JsonUrlDispatch(UrlDispatch):
     jsonify = staticmethod(jsonify)
     json_headers = {}
+
+    def branch(self): 
+        res = self.new(self.db, self.rules)
+        res.json_headers = self.json_headers.copy()
+        return res
 
     def adaptToResponse(self, request, res):
         if isinstance(res, list):
@@ -49,4 +54,24 @@ class JsonUrlDispatch(UrlDispatch):
 
     def findStdHeaders(self, request, response):
         return self.json_headers
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class JsonApiRoot(BasicApiRoot):
+    api = JsonUrlDispatch()
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Example
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+if 1:
+    class ExampleJsonApiRoot(JsonApiRoot):
+        api = JsonApiRoot.api.branch()
+        api.json_headers.update({})
+
+        @api.route('/', methods='GET POST')
+        def root(self, request):
+            return {'success': True}
+
+    del ExampleJsonApiRoot
 

@@ -28,6 +28,7 @@ class UrlDispatch(object):
         self.db = db.copy()
         self.rules = rules[:]
 
+    @classmethod
     def new(klass, *args, **kw): return klass(*args, **kw)
     def branch(self): return self.new(self.db, self.rules)
     def route(self, *args, **kw):
@@ -162,4 +163,35 @@ class UrlDispatch(object):
             for k,v in headers.iteritems():
                 setkv(k, v)
         return response
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ UrlApiRoot
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class BasicApiRoot(object):
+    def wsgi(self, environ, start_response):
+        return self.api.wsgi(environ, start_response, self)
+
+    def createServer(self, host='127.0.0.1', port=0, *args, **kw):
+        from .serving import createWebAppServer
+        return createWebAppServer(self.wsgi, host, port, *args, **kw)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class UrlApiRoot(BasicApiRoot):
+    api = UrlDispatch()
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Example
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+if 1:
+    class ExampleUrlApiRoot(UrlApiRoot):
+        api = UrlApiRoot.api.branch()
+
+        @api.route('/', methods='GET POST')
+        def root(self, request):
+            return request.Response('Success!', 200)
+
+    del ExampleUrlApiRoot
 
