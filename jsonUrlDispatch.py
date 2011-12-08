@@ -18,17 +18,7 @@ from .urlDispatch import UrlDispatch, BasicApiRoot, Response
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def jsonify(request, *args, **kw):
-    """werkzeug version of Flask's jsonify"""
-    top = dict(*args, **kw)
-    top = json.dumps(top, indent=(None if request.is_xhr else 2))
-    ResponseClass = getattr(request, 'Response', Response)
-    return ResponseClass(top, mimetype='application/json')
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 class JsonUrlDispatch(UrlDispatch):
-    jsonify = staticmethod(jsonify)
     json_headers = {}
 
     def branch(self): 
@@ -37,20 +27,18 @@ class JsonUrlDispatch(UrlDispatch):
         return res
 
     def adaptToResponse(self, request, res):
-        if isinstance(res, list):
-            res = {'items':res}
-        elif not isinstance(res, dict):
+        try: return self.asResponse_json(request, res)
+        except TypeError:
             return self.asResponse_fallback(request, res)
 
-        return self.asResponse_json(request, res)
+    def asResponse_json(self, request, res):
+        res = json.dumps(res, indent=(None if request.is_xhr else 2))
+
+        res = self._asRequestResponse(request, res, mimetype='application/json')
+        return self.applyHeaders(request, res, self.json_headers)
 
     def asResponse_fallback(self, request, res):
-        ResponseClass = getattr(request, 'Response', Response)
-        return ResponseClass(res)
-
-    def asResponse_json(self, request, res):
-        res = self.jsonify(request, res)
-        return self.applyHeaders(request, res, self.json_headers)
+        return self._asRequestResponse(request, res)
 
     def findStdHeaders(self, request, response):
         return self.json_headers
@@ -64,7 +52,7 @@ class JsonApiRoot(BasicApiRoot):
 #~ Example
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-if 1:
+if 0:
     class ExampleJsonApiRoot(JsonApiRoot):
         api = JsonApiRoot.api.branch()
         api.json_headers.update({})

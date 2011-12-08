@@ -12,5 +12,5 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 from .urlDispatch import UrlDispatch
-from .jsonUrlDispatch import JsonUrlDispatch, jsonify
+from .jsonUrlDispatch import JsonUrlDispatch
 
