@@ -14,7 +14,7 @@
 import functools
 from werkzeug.exceptions import MethodNotAllowed, HTTPException, NotFound
 from werkzeug.wrappers import Request, Response
-from werkzeug.routing import Map, Rule
+from werkzeug.routing import Map, Rule, RequestRedirect
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
@@ -111,6 +111,8 @@ class UrlDispatch(object):
                 res = self.adaptToResponse(request, res)
 
             self.applyHeaders(request, res)
+        except RequestRedirect as res:
+            return res
         except HTTPException as err:
             res = err
         return res
@@ -145,8 +147,12 @@ class UrlDispatch(object):
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    def _asRequestResponse(self, request, res, *args, **kw):
+        ResponseClass = getattr(request, 'Response', Response)
+        return ResponseClass(res, *args, **kw)
+
     def adaptToResponse(self, request, res):
-        return Response(res)
+        return self._asRequestResponse(request, res)
 
     def applyHeaders(self, request, response, headers=None):
         if headers is None:
@@ -185,7 +191,7 @@ class UrlApiRoot(BasicApiRoot):
 #~ Example
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-if 1:
+if 0:
     class ExampleUrlApiRoot(UrlApiRoot):
         api = UrlApiRoot.api.branch()
 
