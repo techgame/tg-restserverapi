@@ -47,5 +47,8 @@ class WSGILocalServer(BaseWSGIServer):
     def createWebAppServer(klass, webapp, host='127.0.0.1', port=0, *args, **kw):
         return klass(host, port, webapp, *args, **kw)
 
+    def asURL(self, *subpath, **kw):
+        return '{2}://{1[0]}:{1[1]}/{0}'.format('/'.join(subpath), self.address, kw.pop('method', 'http'))
+
 createWebAppServer = WSGILocalServer.createWebAppServer
 
