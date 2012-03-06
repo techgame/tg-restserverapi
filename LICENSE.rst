@@ -4,7 +4,7 @@ generous BSD-style license.
 TG.restServerApi License
 ========================
 
-Copyright (c) 2002-2008, TechGame Networks, LLC.
+Copyright (c) 2002-2012, TechGame Networks, LLC.
 All rights reserved.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
